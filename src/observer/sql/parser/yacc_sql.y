@@ -16,6 +16,8 @@ typedef struct ParserContext {
   size_t condition_length;
   size_t from_length;
   size_t value_length;
+  size_t row_num;
+  Value row_values[MAX_ROW_NUM][MAX_NUM];
   Value values[MAX_NUM];
   Condition conditions[MAX_NUM];
   CompOp comp;
@@ -43,6 +45,7 @@ void yyerror(yyscan_t scanner, const char *str)
   context->from_length = 0;
   context->select_length = 0;
   context->value_length = 0;
+  context->row_num = 0;
   context->ssql->sstr.insertion.value_num = 0;
   printf("parse sql failed. error=%s", str);
 }
@@ -279,7 +282,7 @@ ID_get:
 
 	
 insert:				/*insert   语句的语法解析树*/
-    INSERT INTO ID VALUES LBRACE value value_list RBRACE SEMICOLON 
+    INSERT INTO ID VALUES row row_list SEMICOLON 
 		{
 			// CONTEXT->values[CONTEXT->value_length++] = *$6;
 
@@ -289,11 +292,24 @@ insert:				/*insert   语句的语法解析树*/
 			// for(i = 0; i < CONTEXT->value_length; i++){
 			// 	CONTEXT->ssql->sstr.insertion.values[i] = CONTEXT->values[i];
       // }
-			inserts_init(&CONTEXT->ssql->sstr.insertion, $3, CONTEXT->values, CONTEXT->value_length);
+			inserts_init(&CONTEXT->ssql->sstr.insertion, $3, CONTEXT->row_num, CONTEXT->row_values);
+
 
       //临时变量清零
       CONTEXT->value_length=0;
+	  CONTEXT->row_num = 0;
     }
+
+row:
+	| LBRACE value value_list RBRACE {
+		CONTEXT->row_num++;
+		CONTEXT->value_length=0;
+	}
+	;
+row_list:
+	| COMMA row row_list{
+	}
+	;
 
 value_list:
     /* empty */
@@ -303,14 +319,14 @@ value_list:
     ;
 value:
     NUMBER{	
-  		value_init_integer(&CONTEXT->values[CONTEXT->value_length++], $1);
+  		value_init_integer(&CONTEXT->row_values[CONTEXT->row_num][CONTEXT->value_length++], $1);
 		}
     |FLOAT{
-  		value_init_float(&CONTEXT->values[CONTEXT->value_length++], $1);
+  		value_init_float(&CONTEXT->row_values[CONTEXT->row_num][CONTEXT->value_length++], $1);
 		}
     |SSS {
 			$1 = substr($1,1,strlen($1)-2);
-  		value_init_string(&CONTEXT->values[CONTEXT->value_length++], $1);
+  		value_init_string(&CONTEXT->row_values[CONTEXT->row_num][CONTEXT->value_length++], $1);
 		}
     ;
     

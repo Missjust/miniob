@@ -25,7 +25,7 @@ class InsertStmt : public Stmt
 public:
 
   InsertStmt() = default;
-  InsertStmt(Table *table, const Value *values, int value_amount);
+  InsertStmt(Table *table, const Value *values, int value_amount,Value** row_values,size_t row_num);
 
   StmtType type() const override {
     return StmtType::INSERT;
@@ -36,11 +36,15 @@ public:
 public:
   Table *table() const {return table_;}
   const Value *values() const { return values_; }
+  Value** row_values() { return row_values_; }
   int value_amount() const { return value_amount_; }
+  size_t row_num() {return row_num_;}
 
 private:
   Table *table_ = nullptr;
   const Value *values_ = nullptr;
   int value_amount_ = 0;
+  Value **row_values_ = nullptr; 
+  size_t row_num_;
 };
 
